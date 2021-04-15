@@ -55,6 +55,7 @@
 
 <script>
 import logo from "../assets/heart.png";
+import { attemptsCollection } from "../services/firebase";
 
 export default {
   name: "HelloWorld",
@@ -122,10 +123,26 @@ export default {
   methods: {
     setName() {
       const expectedName = "cristal";
-      if (!this.textBox.toLowerCase().includes(expectedName)) {
-        this.invalidName = true;
+
+      if (this.textBox) {
+        if (!this.textBox.toLowerCase().includes(expectedName)) {
+          this.invalidName = true;
+        }
+
+        this.personName = this.textBox;
+        const { userAgent, vendor, platform } = window.navigator;
+
+        attemptsCollection.add({
+          timestamp: new Date(),
+          name: this.textBox,
+          expected: !this.invalidName,
+          browserInfo: {
+            userAgent,
+            vendor,
+            platform
+          }
+        })
       }
-      this.personName = this.textBox;
     },
   },
 };

@@ -19,9 +19,11 @@ const db = firebase.firestore();
 
 // collection references
 const attemptsCollection = db.collection('attempts')
+const interactionsCollection = db.collection('interactions')
 
 // export utils/refs
 export {
   db,
-  attemptsCollection
+  attemptsCollection,
+  interactionsCollection
 }

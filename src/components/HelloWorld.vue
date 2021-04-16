@@ -27,13 +27,54 @@
         </v-col>
 
         <v-col v-else class="mb-4">
-          <h1 class="display-2 font-weight-bold mb-3">
-            <div>Hola! {{ personName }}.</div>
-          </h1>
+          <div v-if="confirmed === null">
+            <h1 class="display-2 font-weight-bold mb-3">
+              <div>Hola! {{ personName }}.</div>
+            </h1>
 
-          <p class="subheading font-weight-regular">
-            Llegaste en el momento justo
-          </p>
+            <p class="subheading font-weight-regular">
+              Llegaste en el momento justo, estas lista?
+              <v-btn color="red" @click="() => setConfirm(false)">No</v-btn>
+              <v-btn color="blue" @click="() => setConfirm(true)">Sí</v-btn>
+            </p>
+          </div>
+          <div v-if="isReady">
+            <h2 class="display-2 font-weight-bold mb-3">
+              <div>Gracias por ser paciente</div>
+            </h2>
+            <p class="subheading font-weight-regular">
+              {{ personName }} quieres ser la novia del nerd que te envio esto y
+              te hizo esperar?
+              <br />
+              <v-btn color="red" @click="() => setAnswer(false)">Ni loca</v-btn>
+              <v-btn color="blue" @click="() => setAnswer(true)"
+                >Obvio que si!!!</v-btn
+              >
+            </p>
+          </div>
+          <div v-if="answer">
+            <iframe
+              width="480"
+              height="320"
+              src="https://www.youtube.com/embed/-F923I-CU-4?autoplay=1"
+              title="YouTube video player"
+              autoplay
+              frameborder="0"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowfullscreen
+            ></iframe>
+          </div>
+          <div v-else-if="answer === false">
+            <iframe
+              width="480"
+              height="320"
+              src="https://www.youtube.com/embed/t857LwdSkag?autoplay=1"
+              title="YouTube video player"
+              frameborder="0"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowfullscreen
+            ></iframe>
+          </div>
         </v-col>
       </div>
       <div v-else>
@@ -55,14 +96,21 @@
 
 <script>
 import logo from "../assets/heart.png";
-import { attemptsCollection } from "../services/firebase";
+import {
+  attemptsCollection,
+  interactionsCollection,
+} from "../services/firebase";
 
 export default {
   name: "HelloWorld",
 
   data: () => ({
+    currentStep: 0,
+    steps: ["name", "confirm", "answer"],
     personName: "",
     textBox: "",
+    answer: null,
+    confirmed: null,
     embargoDate: new Date("2021-04-16T23:00:00.000Z"),
     ecosystem: [
       {
@@ -78,40 +126,7 @@ export default {
         href: "https://github.com/vuetifyjs/awesome-vuetify",
       },
     ],
-    importantLinks: [
-      {
-        text: "Chat",
-        href: "https://community.vuetifyjs.com",
-      },
-      {
-        text: "Made with Vuetify",
-        href: "https://madewithvuejs.com/vuetify",
-      },
-      {
-        text: "Twitter",
-        href: "https://twitter.com/vuetifyjs",
-      },
-      {
-        text: "Articles",
-        href: "https://medium.com/vuetify",
-      },
-    ],
     logo,
-    whatsNext: [
-      {
-        text: "Explore components",
-        href: "https://vuetifyjs.com",
-      },
-      {
-        text: "Roadmap",
-        href: "https://vuetifyjs.com/introduction/roadmap/",
-      },
-      {
-        text: "Frequently Asked Questions",
-        href:
-          "https://vuetifyjs.com/getting-started/frequently-asked-questions",
-      },
-    ],
   }),
   computed: {
     isUnderEmbargo() {
@@ -119,8 +134,31 @@ export default {
 
       return currentDate <= this.embargoDate;
     },
+    isReady() {
+      return this.confirmed === true;
+    },
   },
   methods: {
+    setConfirm(value) {
+      this.confirmed = value;
+      this.registerInteraction('confirmedWantToKnow', value)
+    },
+    registerInteraction(action, value) {
+      const { userAgent, vendor, platform } = window.navigator;
+      const timestamp = new Date();
+
+      interactionsCollection.add({
+        action: action,
+        value,
+        timestamp,
+        name: this.personName,
+        browserInfo: {
+          userAgent,
+          vendor,
+          platform,
+        },
+      });
+    },
     setName() {
       const expectedName = "cristal";
 
@@ -132,17 +170,23 @@ export default {
         this.personName = this.textBox;
         const { userAgent, vendor, platform } = window.navigator;
 
+        this.registerInteraction('addHerName', this.textBox)
         attemptsCollection.add({
           timestamp: new Date(),
           name: this.textBox,
           expected: !this.invalidName,
+          onTime: !this.isUnderEmbargo,
           browserInfo: {
             userAgent,
             vendor,
-            platform
-          }
-        })
+            platform,
+          },
+        });
       }
+    },
+    setAnswer(value) {
+      this.answer = value;
+      this.registerInteraction('answerBigQuestion', value)
     },
   },
 };
